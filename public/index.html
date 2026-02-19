@@ -1,154 +1,776 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>HappyToilet</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HappyToilet | 서울시 공중화장실 지도·리뷰</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet + MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-<style>
-body{margin:0;font-family:sans-serif;background:#0B1B33;color:#EAF2FF}
-header{padding:15px;background:#11284A}
-main{display:grid;grid-template-columns:1fr 1fr;height:calc(100vh - 60px)}
-#map{height:100%}
-.list{overflow:auto;height:100%;padding:10px}
-.item{background:#11284A;margin-bottom:10px;padding:10px;border-radius:10px;cursor:pointer}
-.item:hover{background:#1c3a63}
-.detail{padding:15px}
-button{background:#2E6BB5;color:white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
-</style>
+  <style>
+    :root{
+      --bg:#0B1B33;
+      --panel:#11284A;
+      --panel2:#0E2342;
+      --line:rgba(234,242,255,.12);
+      --text:#EAF2FF;
+      --muted:rgba(234,242,255,.72);
+      --accent:#2E6BB5;
+      --good:#39C6A2;
+      --mid:#F7C948;
+      --bad:#FF6B6B;
+      --radius:18px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --font: ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo",
+              "Noto Sans KR", "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--text);
+      background:
+        radial-gradient(900px 500px at 15% 0%, rgba(46,107,181,.18), transparent 55%),
+        radial-gradient(900px 500px at 85% 10%, rgba(57,198,162,.10), transparent 55%),
+        var(--bg);
+      min-height:100vh;
+    }
+    .wrap{max-width:1150px;margin:0 auto;padding:22px}
+    header{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:14px; padding:14px 16px;
+      background:linear-gradient(180deg, rgba(17,40,74,.92), rgba(17,40,74,.72));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .brand{display:flex; align-items:center; gap:12px}
+    .logo{
+      width:40px;height:40px;border-radius:14px;
+      background:linear-gradient(135deg, rgba(46,107,181,1), rgba(57,198,162,1));
+      display:grid;place-items:center;
+      box-shadow: 0 8px 20px rgba(46,107,181,.22);
+      font-weight:900;
+      letter-spacing:.5px;
+    }
+    .brand h1{font-size:18px;margin:0}
+    .brand p{margin:2px 0 0;color:var(--muted);font-size:12px}
+    .pill{
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--line);
+      padding:8px 10px;border-radius:999px;
+      background:rgba(14,35,66,.65);
+      white-space:nowrap;
+    }
+
+    main{display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:16px}
+    @media (max-width:980px){ main{grid-template-columns:1fr} }
+
+    .card{
+      background:linear-gradient(180deg, rgba(17,40,74,.92), rgba(14,35,66,.86));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-height: 220px;
+    }
+    .card .hd{
+      padding:14px 16px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      border-bottom:1px solid var(--line);
+      flex-wrap:wrap;
+    }
+    .card .hd h2{margin:0; font-size:15px}
+    .card .bd{padding:16px}
+
+    .controls{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .input{
+      flex:1 1 220px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(11,27,51,.25);
+      color:var(--text);
+      padding:10px 10px;
+      font-size:13px;
+      outline:none;
+    }
+    button{
+      all:unset;
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(11,27,51,.25);
+      color:var(--text);
+      font-size:13px;
+      display:inline-flex; align-items:center; gap:8px;
+      user-select:none;
+    }
+    button.primary{
+      background:linear-gradient(135deg, rgba(46,107,181,.95), rgba(46,107,181,.55));
+      border-color:rgba(46,107,181,.55);
+    }
+    button:hover{transform: translateY(-1px)}
+    button:active{transform: translateY(0px)}
+    .badge{
+      font-size:11px; padding:6px 8px; border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(14,35,66,.6);
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .small{font-size:11px;color:rgba(234,242,255,.55);margin-top:8px;line-height:1.4}
+    .ok{color:rgba(57,198,162,.95)}
+    .warn{color:rgba(247,201,72,.95)}
+    .err{color:rgba(255,107,107,.95)}
+
+    .list{
+      display:flex; flex-direction:column; gap:10px;
+      max-height:420px; overflow:auto; padding-right:6px;
+    }
+    .item{
+      border:1px solid var(--line);
+      background:rgba(11,27,51,.28);
+      border-radius:16px;
+      padding:12px;
+      cursor:pointer;
+    }
+    .item:hover{border-color:rgba(46,107,181,.45)}
+    .item.active{
+      border-color:rgba(46,107,181,.75);
+      box-shadow: 0 0 0 3px rgba(46,107,181,.16);
+    }
+    .itemTop{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
+    .title{margin:10px 0 0; font-weight:900; font-size:14px; line-height:1.35}
+    .addr{margin:6px 0 0; color:var(--muted); font-size:12px; line-height:1.4}
+    .metaLine{margin-top:8px; display:flex; gap:8px; flex-wrap:wrap}
+    .chip{
+      font-size:11px;
+      padding:6px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(11,27,51,.35);
+      color:var(--muted);
+    }
+
+    .toiletTitle{font-size:18px;margin:0}
+    .meta{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.4}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .tag{
+      padding:8px 10px;border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(11,27,51,.35);
+      font-size:12px;color:var(--muted);
+    }
+
+    .scoreGrid{
+      display:grid; grid-template-columns: repeat(3, 1fr);
+      gap:10px; margin-top:14px;
+    }
+    @media (max-width:450px){ .scoreGrid{grid-template-columns:1fr 1fr} }
+    .metric{
+      border:1px solid var(--line);
+      background:rgba(11,27,51,.28);
+      border-radius:14px;
+      padding:12px;
+    }
+    .metric .k{font-size:12px;color:var(--muted)}
+    .metric .v{font-size:18px;font-weight:900;margin-top:6px}
+    .metric .hint{font-size:11px;color:var(--muted);margin-top:6px}
+
+    .reviewItem{
+      border:1px solid var(--line);
+      background:rgba(11,27,51,.28);
+      border-radius:16px;
+      padding:12px;
+    }
+    .stars{font-weight:900}
+    .desc{margin:10px 0 0; color:var(--text); line-height:1.5; font-size:13px}
+    .sub{margin:10px 0 0; color:var(--muted); font-size:12px}
+
+    .formGrid{display:grid; gap:10px; margin-top:14px}
+    .field{display:grid; gap:6px}
+    label{font-size:12px; color:var(--muted)}
+    select, textarea{
+      width:100%;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(11,27,51,.25);
+      color:var(--text);
+      padding:10px 10px;
+      font-size:13px;
+      outline:none;
+    }
+    textarea{min-height:90px; resize:vertical}
+
+    #map{
+      width:100%;
+      height:300px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      overflow:hidden;
+      margin-bottom:12px;
+    }
+  </style>
 </head>
 
 <body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">HT</div>
+        <div>
+          <h1>HappyToilet</h1>
+          <p>서울시 공중화장실 · 내 주변 2km · 클러스터 지도</p>
+        </div>
+      </div>
+      <div class="pill" id="pill">toiletId: -</div>
+    </header>
 
-<header>
-<h2>🚻 HappyToilet · 서울시 전체</h2>
-</header>
+    <main>
+      <!-- LEFT: 지도 + 목록 -->
+      <section class="card">
+        <div class="hd">
+          <h2>지도 & 목록</h2>
+          <div class="controls">
+            <input id="q" class="input" placeholder="검색 (이름/주소/구)" />
+            <button class="primary" id="btnMyLocation">📍 내 위치</button>
+            <button id="btnToggle2km">2km ON</button>
+            <button id="btnReload">새로고침</button>
+          </div>
+        </div>
 
-<main>
+        <div class="bd">
+          <div class="small" id="status">초기 로딩 중…</div>
 
-<div>
-<div id="map"></div>
-</div>
+          <div id="map"></div>
 
-<div class="list" id="toiletList">
-초기 로딩 중...
-</div>
+          <div class="small" id="rangeInfo"></div>
+          <div class="list" id="toiletList"></div>
+        </div>
+      </section>
 
-</main>
+      <!-- RIGHT: 상세 + 리뷰 -->
+      <section class="card">
+        <div class="hd">
+          <h2>상세 & 리뷰</h2>
+          <div class="controls">
+            <button id="btnShare">링크 공유</button>
+            <button id="btnCopyQR" class="primary">QR용 링크 복사</button>
+          </div>
+        </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+        <div class="bd">
+          <h3 class="toiletTitle" id="toiletTitle">화장실을 선택해줘</h3>
+          <div class="meta" id="toiletMeta">지도 핀 또는 왼쪽 목록에서 선택해줘 🙂</div>
 
-let map = L.map("map").setView([37.5665,126.9780], 12);
+          <div class="row" id="tags"></div>
+          <div class="scoreGrid" id="scoreGrid"></div>
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-maxZoom: 19
-}).addTo(map);
+          <div style="margin-top:14px">
+            <div class="badge">리뷰 목록</div>
+            <div style="margin-top:10px" class="list" id="reviewList"></div>
+          </div>
 
-let cluster = L.markerClusterGroup();
-map.addLayer(cluster);
+          <div style="margin-top:14px">
+            <div class="badge">리뷰 작성</div>
+            <div class="formGrid">
+              <div class="field">
+                <label for="category">항목</label>
+                <select id="category">
+                  <option value="청결">청결</option>
+                  <option value="비데">비데</option>
+                  <option value="휴지">휴지</option>
+                  <option value="냄새">냄새</option>
+                  <option value="세면대">세면대</option>
+                  <option value="안전">안전</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="rating">평점(1~5)</label>
+                <select id="rating">
+                  <option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="comment">한 줄 후기</label>
+                <textarea id="comment" placeholder="예: 휴지가 넉넉하고 냄새가 거의 없었어요."></textarea>
+              </div>
+              <button class="primary" id="btnAdd">리뷰 등록</button>
+              <div class="small" id="debug"></div>
+            </div>
+          </div>
 
-let allToilets = [];
-let myLocation = null;
+          <div class="small" style="margin-top:12px">
+            팁 · QR/NFC로 들어오려면 <b>?t=OBJECTID</b> 형태의 URL을 태그에 넣어줘!
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
-function renderList(list){
-const el = document.getElementById("toiletList");
-if(!list.length){
-el.innerHTML="데이터 없음";
-return;
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const $ = (id) => document.getElementById(id);
+
+      // ---------- utils ----------
+      function escapeHtml(s) {
+        return String(s)
+          .replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll('"',"&quot;")
+          .replaceAll("'","&#039;");
+      }
+      function prettyPipe(s) {
+        return String(s || "").replaceAll("|", "").replace(/\s+/g, " ").trim();
+      }
+      function setStatus(msg, cls="") {
+        const el = $("status");
+        if (!el) return;
+        el.className = "small " + cls;
+        el.innerHTML = msg;
+      }
+      function setDebug(msg, cls="") {
+        const el = $("debug");
+        if (!el) return;
+        el.className = "small " + cls;
+        el.innerHTML = msg;
+      }
+
+      function getToiletIdFromURL() {
+        const url = new URL(window.location.href);
+        return url.searchParams.get("t") || url.searchParams.get("toiletId") || "";
+      }
+      function setToiletIdToURL(toiletId) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("t", toiletId);
+        history.replaceState({}, "", url.toString());
+        $("pill").textContent = `toiletId: ${toiletId || "-"}`;
+      }
+
+      // ---------- reviews(localStorage) ----------
+      const storageKey = (toiletId) => `happytoilet:reviews:${toiletId}`;
+      function loadReviews(toiletId) {
+        if (!toiletId) return [];
+        try {
+          const raw = localStorage.getItem(storageKey(toiletId));
+          return raw ? JSON.parse(raw) : [];
+        } catch { return []; }
+      }
+      function saveReviews(toiletId, reviews) {
+        localStorage.setItem(storageKey(toiletId), JSON.stringify(reviews));
+      }
+      function addReview(toiletId, { category, rating, text }) {
+        const reviews = loadReviews(toiletId);
+        reviews.unshift({
+          category,
+          rating: Number(rating),
+          text,
+          by: "익명",
+          time: new Date().toLocaleString("ko-KR", { dateStyle:"short", timeStyle:"short" })
+        });
+        saveReviews(toiletId, reviews);
+        return reviews;
+      }
+      function starText(r) {
+        const n = Math.max(1, Math.min(5, Number(r)));
+        return "★".repeat(n) + "☆".repeat(5-n);
+      }
+      function moodColor(v){
+        if (v >= 4.5) return "var(--good)";
+        if (v >= 3.7) return "var(--mid)";
+        return "var(--bad)";
+      }
+      function computeMetricsFromReviews(reviews) {
+        const categories = ["청결","비데","휴지"];
+        const out = {};
+        for (const c of categories) {
+          const arr = reviews.filter(r => r.category === c).map(r => r.rating);
+          out[c] = arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+        }
+        return out;
+      }
+
+      // ---------- distance ----------
+      function haversineMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const toRad = (d) => d * Math.PI / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+          Math.sin(dLat/2)**2 +
+          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+        return 2 * R * Math.asin(Math.sqrt(a));
+      }
+
+      // ---------- map + clustering ----------
+      let map = null;
+      let cluster = null;
+      let myMarker = null;
+
+      function initMap() {
+        map = L.map("map").setView([37.5665, 126.9780], 12);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "&copy; OpenStreetMap"
+        }).addTo(map);
+
+        cluster = L.markerClusterGroup({
+          showCoverageOnHover: false,
+          spiderfyOnMaxZoom: true
+        });
+        map.addLayer(cluster);
+      }
+
+      function renderClusterMarkers(list) {
+        if (!map || !cluster) return;
+        cluster.clearLayers();
+
+        for (const t of list) {
+          const lat = Number(t.lat);
+          const lng = Number(t.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+          const marker = L.marker([lat, lng]);
+          marker.bindPopup(
+            `<b>${escapeHtml(t.name)}</b><br/>${escapeHtml(t.addr)}`
+          );
+          marker.on("click", () => selectToiletById(t.toiletId));
+          cluster.addLayer(marker);
+        }
+      }
+
+      function fitTo(list) {
+        const pts = [];
+        for (const t of list) {
+          const lat = Number(t.lat), lng = Number(t.lng);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) pts.push([lat, lng]);
+        }
+        if (!pts.length) return;
+        map.fitBounds(pts, { padding: [30, 30] });
+      }
+
+      // ---------- app state ----------
+      let allToilets = [];      // 서울 전체
+      let viewToilets = [];     // 현재 표시(2km/검색 반영)
+      let selectedId = "";
+      let selectedToilet = null;
+
+      let myPos = null;         // {lat,lng}
+      let filter2kmOn = true;   // 기본 ON (요청대로)
+
+      
+
+      function applyFiltersAndRender() {
+        const q = ($("q").value || "").trim().toLowerCase();
+
+        // 1) 2km 필터
+        let base = allToilets;
+
+        if (filter2kmOn && myPos) {
+          const radius = 2000;
+          base = allToilets.filter(t => {
+            const lat = Number(t.lat), lng = Number(t.lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+            return haversineMeters(myPos.lat, myPos.lng, lat, lng) <= radius;
+          });
+          $("rangeInfo").innerHTML = `현재 위치 기준 <span class="badge">2km</span> 안에 <span class="badge">${base.length}개</span>`;
+        } else if (filter2kmOn && !myPos) {
+          $("rangeInfo").innerHTML = `2km 필터 ON (현재 위치 권한이 필요해요)`;
+        } else {
+          $("rangeInfo").innerHTML = `전체 보기 <span class="badge">${allToilets.length}개</span>`;
+        }
+
+        // 2) 검색
+        if (q) {
+          base = base.filter(t => `${t.name} ${t.addr} ${t.gu}`.toLowerCase().includes(q));
+        }
+
+        viewToilets = base;
+
+        // 목록 + 지도 렌더
+        renderToiletList(viewToilets, selectedId);
+        renderClusterMarkers(viewToilets);
+
+        // 화면 맞추기: 2km면 위치 중심, 아니면 목록 bounds
+        if (myPos && filter2kmOn) {
+          map.setView([myPos.lat, myPos.lng], 14);
+        } else {
+          fitTo(viewToilets);
+        }
+      }
+function findById(id) {
+  return allToilets.find(t => String(t.toiletId) === String(id)) || null;
 }
-el.innerHTML = list.slice(0,500).map(t => `
-<div class="item" onclick="selectToilet('${t.toiletId}')">
-<b>${t.name || "이름없음"}</b><br/>
-${t.addr || ""}
-</div>
-`).join("");
+
+      function renderToiletList(list, activeId) {
+        const el = $("toiletList");
+        if (!el) return;
+
+        if (!list.length) {
+          el.innerHTML = `
+            <div class="item">
+              <div class="title">결과가 없어요 😭</div>
+              <div class="addr">검색어를 바꾸거나 2km 필터를 꺼봐!</div>
+            </div>`;
+          return;
+        }
+
+        el.innerHTML = list.slice(0, 400).map(t => { // 너무 많으면 DOM 무거워서 400개만(지도엔 다 찍힘)
+          const isActive = t.toiletId === activeId;
+          const gu = t.gu || "서울";
+          const type = prettyPipe(t.openType) || "개방정보";
+          const time = prettyPipe(t.openTime) || "운영정보 없음";
+          const tel = (t.tel || "").trim();
+
+          return `
+            <div class="item ${isActive ? "active" : ""}" data-id="${escapeHtml(t.toiletId)}">
+              <div class="itemTop">
+                <span class="badge">${escapeHtml(gu)} · ${escapeHtml(type)}</span>
+                <span class="badge">ID: ${escapeHtml(t.toiletId)}</span>
+              </div>
+              <div class="title">🚻 ${escapeHtml(t.name || "(이름 없음)")}</div>
+              <div class="addr">${escapeHtml(t.addr || "(주소 없음)")}</div>
+              <div class="metaLine">
+                <span class="chip">⏰ ${escapeHtml(time)}</span>
+                ${tel ? `<span class="chip">☎ ${escapeHtml(tel)}</span>` : ""}
+              </div>
+            </div>`;
+        }).join("");
+
+        el.querySelectorAll(".item").forEach(node => {
+          node.addEventListener("click", () => {
+            selectToiletById(node.getAttribute("data-id"));
+          });
+        });
+      }
+
+      function renderDetail(selected, reviews) {
+        if (!selected) {
+          $("toiletTitle").textContent = "화장실을 선택해줘";
+          $("toiletMeta").textContent = "지도 핀 또는 왼쪽 목록에서 선택해줘 🙂";
+          $("tags").innerHTML = "";
+          $("scoreGrid").innerHTML = "";
+          $("reviewList").innerHTML = `<div class="reviewItem"><p class="desc">선택하면 리뷰를 볼 수 있어!</p></div>`;
+          return;
+        }
+
+        $("toiletTitle").textContent = `🚻 ${selected.name || "(이름 없음)"}`;
+        $("toiletMeta").textContent = selected.addr || "(주소 없음)";
+
+        const tags = [];
+        if (selected.gu) tags.push(`📍 ${selected.gu}`);
+        if (prettyPipe(selected.openType)) tags.push(`🔓 ${prettyPipe(selected.openType)}`);
+        if (prettyPipe(selected.openTime)) tags.push(`⏰ ${prettyPipe(selected.openTime)}`);
+        if (prettyPipe(selected.gender)) tags.push(`🚻 ${prettyPipe(selected.gender)}`);
+        $("tags").innerHTML = tags.slice(0,4).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
+
+        const metrics = computeMetricsFromReviews(reviews);
+        const items = [["청결", metrics["청결"]], ["비데", metrics["비데"]], ["휴지", metrics["휴지"]]];
+        $("scoreGrid").innerHTML = items.map(([k,v]) => {
+          const show = v == null ? "-" : v.toFixed(1);
+          const color = v == null ? "var(--muted)" : moodColor(v);
+          const hint = v == null ? "리뷰 없음" : "리뷰 평균";
+          return `
+            <div class="metric">
+              <div class="k">${k}</div>
+              <div class="v" style="color:${color}">${show}</div>
+              <div class="hint">${hint}</div>
+            </div>`;
+        }).join("");
+
+        if (!reviews.length) {
+          $("reviewList").innerHTML = `<div class="reviewItem"><p class="desc">첫 리뷰를 남겨줘 ✍️</p></div>`;
+        } else {
+          $("reviewList").innerHTML = reviews.map(r => `
+            <div class="reviewItem">
+              <div class="itemTop">
+                <span class="badge">${escapeHtml(r.category)}</span>
+                <span class="stars">${starText(r.rating)}</span>
+              </div>
+              <p class="desc">${escapeHtml(r.text)}</p>
+              <p class="sub">${escapeHtml(r.by)} · ${escapeHtml(r.time)}</p>
+            </div>`).join("");
+        }
+      }
+
+      function focusMap(toilet) {
+        if (!toilet) return;
+        const lat = Number(toilet.lat), lng = Number(toilet.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        map.setView([lat, lng], 17);
+      }
+
+      function selectToiletById(id) {
+        const t = findById(id);
+        if (!t) {
+          selectedId = id || "";
+          setToiletIdToURL(selectedId);
+          selectedToilet = null;
+          renderDetail(null, []);
+          setDebug(`선택한 ID가 현재 데이터에 없어요 😭`, "warn");
+          return;
+        }
+
+        selectedId = t.toiletId;
+        selectedToilet = t;
+        setToiletIdToURL(selectedId);
+
+        const reviews = loadReviews(selectedId);
+        renderDetail(selectedToilet, reviews);
+        focusMap(selectedToilet);
+        setDebug(`선택됨 ✅ ${escapeHtml(t.name)}`, "ok");
+      }
+
+      // ---------- geolocation ----------
+      function setMyLocation(lat, lng) {
+        myPos = { lat, lng };
+
+        if (myMarker) map.removeLayer(myMarker);
+        myMarker = L.circleMarker([lat, lng], {
+          radius: 9,
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.35
+        }).addTo(map);
+        myMarker.bindPopup("📍 현재 위치").openPopup();
+      }
+
+      function requestMyLocation() {
+        if (!navigator.geolocation) {
+          alert("이 브라우저는 위치를 지원하지 않아요.");
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setMyLocation(lat, lng);
+            applyFiltersAndRender();
+          },
+          () => alert("위치 권한을 허용해줘야 2km 필터가 동작해요!"),
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      }
+function normalizeRow(r, idx) {
+  const toiletId = r.toiletId || r.OBJECTID || r.POI_ID || r.ID || `ROW_${idx + 1}`;
+  return {
+    toiletId: String(toiletId),
+    name: r.name || r.CONTS_NAME || r.FNAME || r.TOILET_NM || r.NAME || "(이름 없음)",
+    addr: r.addr || r.ADDR_NEW || r.ADR || r.ADDR || r.ADDRESS || "(주소 없음)",
+    lat: r.lat || r.COORD_Y || r.Y_WGS84 || r.LAT || "",
+    lng: r.lng || r.COORD_X || r.X_WGS84 || r.LNG || "",
+    gu: r.gu || r.GU_NAME || "",
+    tel: r.tel || r.TEL_NO || "",
+    openType: r.openType || r.VALUE_01 || "",
+    openTime: r.openTime || r.VALUE_02 || "",
+    gender: r.gender || r.VALUE_04 || ""
+  };
 }
 
-function renderMarkers(list){
-cluster.clearLayers();
-list.forEach(t=>{
-const lat = Number(t.lat);
-const lng = Number(t.lng);
-if(!lat || !lng) return;
-const marker = L.marker([lat,lng]);
-marker.bindPopup(`<b>${t.name}</b><br>${t.addr}`);
-marker.on("click",()=>selectToilet(t.toiletId));
-cluster.addLayer(marker);
-});
-}
+      // ---------- load all ----------
+      async function loadAllToilets() {
+        setStatus(`서울시 전체 불러오는 중… <span class="badge">/api/toilets/all</span>`, "warn");
+        try {
+          const res = await fetch("/api/toilets/all");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
 
-window.selectToilet = function(id){
-const t = allToilets.find(x=>x.toiletId==id);
-if(!t) return;
+          allToilets = (data.rows || []).map(normalizeRow);
 
-const lat = Number(t.lat);
-const lng = Number(t.lng);
-map.setView([lat,lng],17);
+          setStatus(
+            `완료 ✅ <span class="badge">${allToilets.length}개</span> ${data.cached ? "<span class='badge'>캐시</span>" : ""}`,
+            "ok"
+          );
 
-const nav = `
-<br/><br/>
-<button onclick="navigateTo(${lat},${lng})">📍 길안내</button>
-`;
+          // URL 들어온 경우 먼저 선택 유지
+          const incoming = getToiletIdFromURL();
+          if (incoming) {
+            selectedId = incoming;
+            $("pill").textContent = `toiletId: ${incoming}`;
+          }
 
-document.getElementById("toiletList").innerHTML = `
-<div class="detail">
-<h3>${t.name}</h3>
-<p>${t.addr}</p>
-${nav}
-<button onclick="loadAll()">← 목록으로</button>
-</div>
-`;
-}
+          applyFiltersAndRender();
 
-window.navigateTo = function(lat,lng){
-if(myLocation){
-window.open(`https://map.kakao.com/link/from/내위치,${myLocation.lat},${myLocation.lng}/to/화장실,${lat},${lng}`);
-}else{
-window.open(`https://map.kakao.com/link/to/화장실,${lat},${lng}`);
-}
-}
+          // URL로 들어온 선택이 있다면 상세 표시까지
+          if (incoming) selectToiletById(incoming);
+          else renderDetail(null, []);
+        } catch (e) {
+          console.error(e);
+          setStatus(`에러 ❌ 전체 불러오기 실패 <span class="badge">${escapeHtml(String(e.message || e))}</span>`, "err");
+        }
+      }
 
-function getMyLocation(){
-if(!navigator.geolocation) return;
-navigator.geolocation.getCurrentPosition(pos=>{
-myLocation = {
-lat: pos.coords.latitude,
-lng: pos.coords.longitude
-};
-L.circleMarker([myLocation.lat,myLocation.lng],{
-radius:8,color:"red"
-}).addTo(map).bindPopup("내 위치");
-});
-}
+      // ---------- bind events ----------
+      $("q").addEventListener("input", () => applyFiltersAndRender());
 
-async function loadAll(){
-document.getElementById("toiletList").innerHTML="불러오는 중...";
-try{
-const res = await fetch("/api/toilets/all");
-const data = await res.json();
-allToilets = data.rows || [];
+      $("btnMyLocation").addEventListener("click", () => requestMyLocation());
 
-renderList(allToilets);
-renderMarkers(allToilets);
+      $("btnToggle2km").addEventListener("click", () => {
+        filter2kmOn = !filter2kmOn;
+        $("btnToggle2km").textContent = filter2kmOn ? "2km ON" : "2km OFF";
+        applyFiltersAndRender();
+      });
 
-}catch(e){
-document.getElementById("toiletList").innerHTML="불러오기 실패";
-}
-}
+      $("btnReload").addEventListener("click", () => loadAllToilets());
 
-getMyLocation();
-loadAll();
+      $("btnAdd").addEventListener("click", () => {
+        if (!selectedId || !selectedToilet) return setDebug("먼저 화장실을 선택해줘 🙂", "warn");
+        const category = $("category").value;
+        const rating = $("rating").value;
+        const text = $("comment").value.trim();
+        if (text.length < 2) return setDebug("후기를 2글자 이상 적어줘 🙂", "warn");
 
-});
-</script>
+        const updated = addReview(selectedId, { category, rating, text });
+        $("comment").value = "";
+        renderDetail(selectedToilet, updated);
+        setDebug("리뷰 등록 완료 ✅", "ok");
+      });
 
+      $("btnShare").addEventListener("click", async () => {
+        const url = window.location.href;
+        try {
+          if (navigator.share) await navigator.share({ title: "HappyToilet", url });
+          else await navigator.clipboard.writeText(url);
+          setDebug("공유/복사 완료 ✅", "ok");
+        } catch {
+          setDebug("공유가 취소됐어.", "warn");
+        }
+      });
+
+      $("btnCopyQR").addEventListener("click", async () => {
+        if (!selectedId) return setDebug("먼저 화장실을 선택해줘!", "warn");
+        const url = new URL(window.location.href);
+        url.searchParams.set("t", selectedId);
+        try {
+          await navigator.clipboard.writeText(url.toString());
+          setDebug("QR/NFC 링크 복사 완료 ✅", "ok");
+        } catch {
+          setDebug("복사 실패 😭", "err");
+        }
+      });
+
+      // ---------- init ----------
+      initMap();
+
+      const incoming = getToiletIdFromURL();
+      $("pill").textContent = `toiletId: ${incoming || "-"}`;
+
+      // 전체 먼저 로드
+      loadAllToilets();
+
+      // 2km 기본 ON이니까, 초기에도 위치 한번 요청(사용자 권한 필요)
+      requestMyLocation();
+    });
+  </script>
 </body>
 </html>
