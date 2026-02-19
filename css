@@ -1,0 +1,30 @@
+.itemMeta{
+  margin-top:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.chip{
+  font-size:11px;
+  padding:6px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(11,27,51,.35);
+  color:var(--muted);
+}
+.chip strong{color:var(--text); font-weight:800}
+.kpi{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.kpiBox{
+  flex:1 1 140px;
+  border:1px solid var(--line);
+  background:rgba(11,27,51,.25);
+  border-radius:14px;
+  padding:12px;
+}
+.kpiBox .k{font-size:12px;color:var(--muted)}
+.kpiBox .v{font-size:14px;font-weight:900;margin-top:6px}
