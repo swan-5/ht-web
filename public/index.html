@@ -468,9 +468,7 @@
       let myPos = null;         // {lat,lng}
       let filter2kmOn = true;   // 기본 ON (요청대로)
 
-      function findById(id) {
-        return allToilets.find(t => t.toiletId === id) || null;
-      }
+      
 
       function applyFiltersAndRender() {
         const q = ($("q").value || "").trim().toLowerCase();
@@ -510,6 +508,9 @@
           fitTo(viewToilets);
         }
       }
+function findById(id) {
+  return allToilets.find(t => String(t.toiletId) === String(id)) || null;
+}
 
       function renderToiletList(list, activeId) {
         const el = $("toiletList");
@@ -660,6 +661,21 @@
           { enableHighAccuracy: true, timeout: 8000 }
         );
       }
+function normalizeRow(r, idx) {
+  const toiletId = r.toiletId || r.OBJECTID || r.POI_ID || r.ID || `ROW_${idx + 1}`;
+  return {
+    toiletId: String(toiletId),
+    name: r.name || r.CONTS_NAME || r.FNAME || r.TOILET_NM || r.NAME || "(이름 없음)",
+    addr: r.addr || r.ADDR_NEW || r.ADR || r.ADDR || r.ADDRESS || "(주소 없음)",
+    lat: r.lat || r.COORD_Y || r.Y_WGS84 || r.LAT || "",
+    lng: r.lng || r.COORD_X || r.X_WGS84 || r.LNG || "",
+    gu: r.gu || r.GU_NAME || "",
+    tel: r.tel || r.TEL_NO || "",
+    openType: r.openType || r.VALUE_01 || "",
+    openTime: r.openTime || r.VALUE_02 || "",
+    gender: r.gender || r.VALUE_04 || ""
+  };
+}
 
       // ---------- load all ----------
       async function loadAllToilets() {
@@ -669,7 +685,8 @@
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
-          allToilets = data.rows || [];
+          allToilets = (data.rows || []).map(normalizeRow);
+
           setStatus(
             `완료 ✅ <span class="badge">${allToilets.length}개</span> ${data.cached ? "<span class='badge'>캐시</span>" : ""}`,
             "ok"
