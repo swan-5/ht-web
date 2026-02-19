@@ -645,6 +645,71 @@ function findById(id) {
         myMarker.bindPopup("📍 현재 위치").openPopup();
       }
 
+      // ---------- nearest + navigation ----------
+function getNearestToilet(list, myPos) {
+  if (!myPos) return null;
+
+  let best = null;
+  let bestD = Infinity;
+
+  for (const t of list) {
+    const lat = Number(t.lat), lng = Number(t.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+    const d = haversineMeters(myPos.lat, myPos.lng, lat, lng);
+    if (d < bestD) {
+      bestD = d;
+      best = { ...t, _distM: d };
+    }
+  }
+  return best;
+}
+
+function openDirections(toilet) {
+  if (!toilet) return;
+
+  const lat = Number(toilet.lat);
+  const lng = Number(toilet.lng);
+  const name = toilet.name || "화장실";
+
+  // ✅ 가장 안정적인 길안내: Google Maps (iOS/Android/PC 모두 OK)
+  // 현재 위치→목적지 자동으로 잡힘
+  const gmap = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
+
+  // (선택) 카카오맵/네이버맵도 같이 원하면 아래 링크도 만들어줄게.
+  window.open(gmap, "_blank");
+}
+
+function formatDistance(m) {
+  if (!Number.isFinite(m)) return "";
+  if (m < 1000) return `${Math.round(m)}m`;
+  return `${(m/1000).toFixed(2)}km`;
+}
+
+// 버튼 이벤트
+$("btnNearest").addEventListener("click", () => {
+  if (!myPos) {
+    setDebug("먼저 📍내 위치 버튼 눌러서 위치 권한을 허용해줘!", "warn");
+    requestMyLocation(); // 있으면 한번 더 요청
+    return;
+  }
+
+  // 2km ON이면 현재 보이는(viewToilets)에서 찾고,
+  // 2km OFF면 전체(allToilets)에서 찾기
+  const base = (filter2kmOn ? viewToilets : allToilets);
+
+  const nearest = getNearestToilet(base, myPos);
+  if (!nearest) {
+    setDebug("가까운 화장실을 찾지 못했어 😭 (좌표 없는 데이터일 수 있어)", "err");
+    return;
+  }
+
+  // 선택 + 지도 이동 + 안내
+  selectToiletById(nearest.toiletId);
+  setDebug(`가장 가까움 ✅ ${escapeHtml(nearest.name)} · ${formatDistance(nearest._distM)}`, "ok");
+  openDirections(nearest);
+});
+
       function requestMyLocation() {
         if (!navigator.geolocation) {
           alert("이 브라우저는 위치를 지원하지 않아요.");
@@ -720,6 +785,8 @@ function normalizeRow(r, idx) {
         $("btnToggle2km").textContent = filter2kmOn ? "2km ON" : "2km OFF";
         applyFiltersAndRender();
       });
+      <button class="primary" id="btnNearest">🧭 가장 가까운 화장실 길안내</button>
+
 
       $("btnReload").addEventListener("click", () => loadAllToilets());
 
