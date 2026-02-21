@@ -764,44 +764,25 @@ function normalizeRow(r, idx) {
 
       // ---------- init ----------
       initMap();
-      const mapWrap = $("mapWrap");
+    // ---------- map fullscreen (mobile-safe) ----------
+// ---------- map fullscreen (overlay) ----------
+const mapWrap = $("mapWrap");
 const mapFsBtn = $("mapFsBtn");
 
-function isFullscreen(){
-  return document.fullscreenElement || document.webkitFullscreenElement;
+function setFs(on){
+  mapWrap.classList.toggle("isFs", on);
+  mapFsBtn.textContent = on ? "✕" : "⛶";
+  document.body.style.overflow = on ? "hidden" : "";
+  setTimeout(() => map.invalidateSize(), 200);
 }
 
-async function enterFs(){
-  if (mapWrap.requestFullscreen) return mapWrap.requestFullscreen();
-  if (mapWrap.webkitRequestFullscreen) return mapWrap.webkitRequestFullscreen(); // Safari
-  throw new Error("Fullscreen API not supported");
-}
-
-async function exitFs(){
-  if (document.exitFullscreen) return document.exitFullscreen();
-  if (document.webkitExitFullscreen) return document.webkitExitFullscreen(); // Safari
-}
-
-mapFsBtn.addEventListener("click", async () => {
-  try{
-    if (!isFullscreen()) await enterFs();
-    else await exitFs();
-  } catch(e){
-    console.error(e);
-    setDebug(`전체화면 실패: ${e.message || e}`, "err");
-  }
+mapFsBtn.addEventListener("click", () => {
+  setFs(!mapWrap.classList.contains("isFs"));
 });
 
-function onFsChange(){
-  const on = !!isFullscreen();
-  mapFsBtn.textContent = on ? "✕" : "⛶";
-  setTimeout(() => map.invalidateSize(), 150);
-}
-
-document.addEventListener("fullscreenchange", onFsChange);
-document.addEventListener("webkitfullscreenchange", onFsChange);
-
-
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && mapWrap.classList.contains("isFs")) setFs(false);
+});
 
       const incoming = getToiletIdFromURL();
       $("pill").textContent = `toiletId: ${incoming || "-"}`;

@@ -73,3 +73,33 @@
   border-radius:0;
   margin-bottom:0;
 }
+/* ✅ 모바일 대응: 지도 전체화면(가짜 fullscreen) */
+/* ✅ 전체화면(overlay) */
+#mapWrap.isFs{
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  border-radius: 0;
+  margin: 0;
+}
+
+/* ✅ 버튼이 all:unset 영향 받아도 보이게 */
+#mapFsBtn{
+  all: unset;                /* <- 전역 button all:unset 때문에 여기서 확실히 재정의 */
+  position:absolute;
+  top:12px;
+  right:12px;
+  z-index:10000;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(11,27,51,.75);
+  color:var(--text);
+  cursor:pointer;
+  user-select:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
