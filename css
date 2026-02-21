@@ -28,3 +28,48 @@
 }
 .kpiBox .k{font-size:12px;color:var(--muted)}
 .kpiBox .v{font-size:14px;font-weight:900;margin-top:6px}
+#mapWrap{
+  position: relative;
+  width: 100%;
+  height: 300px;                 /* 기존 #map height 유지 */
+  border-radius:16px;
+  border:1px solid var(--line);
+  overflow:hidden;
+  margin-bottom:12px;
+}
+
+#map{
+  width:100%;
+  height:100%;
+}
+
+/* 전체화면 버튼 */
+#mapFsBtn{
+  position:absolute;
+  top:12px;
+  right:12px;
+  z-index:1000;
+  border:1px solid var(--line);
+  background:rgba(11,27,51,.35);
+  color:var(--text);
+  border-radius:12px;
+  padding:10px 12px;
+  cursor:pointer;
+  user-select:none;
+}
+
+/* ✅ 전체화면일 때 지도 래퍼가 화면을 꽉 채움 */
+#mapWrap:fullscreen{
+  width:100vw;
+  height:100vh;
+  border-radius:0;
+  margin-bottom:0;
+}
+
+/* (사파리 일부 대응) */
+#mapWrap:-webkit-full-screen{
+  width:100vw;
+  height:100vh;
+  border-radius:0;
+  margin-bottom:0;
+}

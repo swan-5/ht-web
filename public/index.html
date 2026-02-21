@@ -250,7 +250,10 @@
         <div class="bd">
           <div class="small" id="status">초기 로딩 중…</div>
 
-          <div id="map"></div>
+          <div id="mapWrap">
+           <div id="map"></div>
+             <button id="mapFsBtn" type="button" aria-label="지도 전체화면">⛶</button>
+          </div>
 
           <div class="small" id="rangeInfo"></div>
           <div class="list" id="toiletList"></div>
@@ -761,6 +764,44 @@ function normalizeRow(r, idx) {
 
       // ---------- init ----------
       initMap();
+      const mapWrap = $("mapWrap");
+const mapFsBtn = $("mapFsBtn");
+
+function isFullscreen(){
+  return document.fullscreenElement || document.webkitFullscreenElement;
+}
+
+async function enterFs(){
+  if (mapWrap.requestFullscreen) return mapWrap.requestFullscreen();
+  if (mapWrap.webkitRequestFullscreen) return mapWrap.webkitRequestFullscreen(); // Safari
+  throw new Error("Fullscreen API not supported");
+}
+
+async function exitFs(){
+  if (document.exitFullscreen) return document.exitFullscreen();
+  if (document.webkitExitFullscreen) return document.webkitExitFullscreen(); // Safari
+}
+
+mapFsBtn.addEventListener("click", async () => {
+  try{
+    if (!isFullscreen()) await enterFs();
+    else await exitFs();
+  } catch(e){
+    console.error(e);
+    setDebug(`전체화면 실패: ${e.message || e}`, "err");
+  }
+});
+
+function onFsChange(){
+  const on = !!isFullscreen();
+  mapFsBtn.textContent = on ? "✕" : "⛶";
+  setTimeout(() => map.invalidateSize(), 150);
+}
+
+document.addEventListener("fullscreenchange", onFsChange);
+document.addEventListener("webkitfullscreenchange", onFsChange);
+
+
 
       const incoming = getToiletIdFromURL();
       $("pill").textContent = `toiletId: ${incoming || "-"}`;
